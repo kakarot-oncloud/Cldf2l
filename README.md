@@ -1,334 +1,404 @@
 # PR Streams — Telegram File → Link Bot (Streaming + Fast Downloads)
 
-Send any file to the bot on Telegram and instantly get:
+Send **any file** to your bot on Telegram and get back:
 
-- ⬇️ a **high-speed direct download** link
-- ▶️ a **beautiful streaming page** with a built-in player (light/dark toggle)
-- 📲 one-tap **Open in VLC / MX Player** on both PC and Android
-- ∞ **any file size** up to Telegram's own limit (2 GB, or **4 GB** from Premium accounts)
-- 🎞️ **MKV, MP4, MOV, AVI, WEBM** and every popular format
+- ⬇️ a **fast direct download** link
+- ▶️ a **nice video player page** (with a light/dark switch)
+- 📲 **“Open in VLC / MX Player”** buttons for phone and computer
+- ∞ **any size** file (up to Telegram’s own limit — 2 GB, or **4 GB** with Premium)
+- 🎞️ plays **MKV, MP4, MOV, AVI, WEBM** and all popular formats
 
-It's built to fix the classic problem: *streaming is smooth but downloads are slow.*
-See [Why downloads are fast here](#why-downloads-are-fast-here).
-
----
-
-## Table of contents
-
-1. [How it works](#how-it-works)
-2. [Why downloads are fast here](#why-downloads-are-fast-here)
-3. [Prerequisites](#prerequisites)
-4. [Configuration reference](#configuration-reference)
-5. [Deploy on a VPS (recommended)](#deploy-on-a-vps-recommended)
-   - [Option A — Docker Compose](#option-a--docker-compose-easiest)
-   - [Option B — systemd + nginx + HTTPS](#option-b--systemd--nginx--https-no-docker)
-6. [Deploy with Docker anywhere](#deploy-with-docker-anywhere)
-7. [Deploy on Koyeb / Render / Railway / Heroku](#deploy-on-a-paas)
-8. [Multi-client speed & 4 GB files](#multi-client-speed--4-gb-files)
-9. [Getting maximum download speed](#getting-maximum-download-speed)
-10. [Using the bot](#using-the-bot)
-11. [Troubleshooting](#troubleshooting)
-12. [Project layout](#project-layout)
+> This guide is written so that **anyone** can set it up — even if you’ve never
+> written code. Just follow the steps and **copy‑paste** the boxes. 🙂
 
 ---
 
-## How it works
+## 🧭 Super simple overview
 
-1. You send (or forward) a file to the bot in a private chat.
-2. The bot **copies** the message into a private **storage channel** (server-side —
-   nothing is re-uploaded, so even a 4 GB file is instant).
-3. It replies with a **stream link** and a **download link**, each carrying a short
-   anti-scrape hash.
-4. When someone opens a link, the web server **streams the file's bytes straight
-   from Telegram's data centre in 1 MiB chunks**, honouring HTTP `Range` requests
-   so seeking, resuming and multi-connection downloads all work.
+You only need to do **3 things**:
 
-Nothing is stored on the server's disk — it's a pure pass-through.
+1. **Get your keys** (5 minutes of clicking — [Step 1](#-step-1-get-your-4-keys)).
+2. **Put the bot online** using ONE of the methods in [Step 2](#-step-2-put-the-bot-online-pick-one).
+3. **Send a file** to your bot and enjoy your links 🎉
 
-## Why downloads are fast here
+---
 
-If you've built these bots before, you've probably seen 4K streaming play
-smoothly while a plain download crawls. That happens because a video player only
-asks for **small byte ranges**, while a straight download pulls the **whole file
-over a single Telegram connection**, which caps throughput.
+## 🔑 Step 1: Get your 4 keys
 
-PR Streams fixes it three ways:
+Grab these 4 things and paste them into a notepad for later. Don’t share them with anyone.
 
-- **Multi-client load balancing** — add extra bot tokens / user sessions and every
-  request is served by the *least-busy* client, so downloads aren't stuck behind
-  one connection. ([setup](#multi-client-speed--4-gb-files))
-- **Cached media sessions** — the authorized DC connection is reused across
-  requests, so range requests skip the handshake entirely.
-- **First-class HTTP `Range` support** — this is what lets **download managers
-  (IDM, aria2, ADM, 1DM) pull with 8–16 parallel connections**, which multiplies
-  real-world speed. ([how](#getting-maximum-download-speed))
+### 1) API_ID and API_HASH
+1. Open **https://my.telegram.org** in a browser.
+2. Log in with your phone number (Telegram sends you a code).
+3. Click **API development tools**.
+4. Fill the form (App title: `PR Streams`, short name: `prstreams`, anything works).
+5. Click **Create application**.
+6. Copy the **App api_id** (a number) and **App api_hash** (a long code). ✅
 
-And because you host it on a **VPS**, there's no PaaS egress throttle in the way.
+### 2) BOT_TOKEN
+1. Open Telegram and search for **@BotFather** (the one with a blue tick).
+2. Send `/newbot`.
+3. Give your bot a **name** (e.g. `PR Streams`) and a **username** ending in `bot`
+   (e.g. `pr_streams_bot`).
+4. BotFather sends you a **token** that looks like `123456:ABC-DEF...`. Copy it. ✅
 
-## Prerequisites
+### 3) STORAGE_CHANNEL (where files are kept)
+1. In Telegram, tap the pencil ✏️ → **New Channel**. Make it **Private**.
+2. Open the channel → **Administrators** → **Add Admin** → add **your bot**
+   (search its username). Give it all permissions. ✅
+3. Now find the channel’s **ID number**:
+   - Post any message in the channel.
+   - Forward that message to **@userinfobot**.
+   - It replies with an id like `-1001234567890`. Copy it (keep the `-100`). ✅
 
-You need four things before deploying:
+### 4) A place to run it (host)
+Pick this in Step 2 below. If you have a **VPS**, great. If you don’t, use the
+free **Railway/Render** method — no computer skills needed.
 
-| # | What | Where to get it |
-|---|------|-----------------|
-| 1 | **API_ID** and **API_HASH** | <https://my.telegram.org> → *API development tools* |
-| 2 | **BOT_TOKEN** | [@BotFather](https://t.me/BotFather) → `/newbot` |
-| 3 | **Storage channel** | Create a **private channel**, add your bot as **admin**, and get its id (it starts with `-100…`). Forward any post from it to [@userinfobot](https://t.me/userinfobot) to read the id. |
-| 4 | A **domain or public IP** | For a VPS, point a domain's A-record at the server (needed for HTTPS). |
+---
 
-> The bot must be an **admin** in the storage channel, otherwise it can't save or
-> serve files.
+## 🚀 Step 2: Put the bot online (pick ONE)
 
-## Configuration reference
+Pick the method that fits you. **You only need one.**
 
-Copy `config.env.sample` to `config.env` and fill it in (on a PaaS, set these as
-environment variables instead).
+| Method | Best for | Difficulty |
+|--------|----------|:---:|
+| [A. Railway / Render (website)](#a--railway--render-easiest-no-commands) | Beginners, no VPS | ⭐ Easiest |
+| [B. VPS with Docker](#b--vps-with-docker-copy-paste) | You have a VPS | ⭐⭐ Easy |
+| [C. VPS without Docker](#c--vps-without-docker-copy-paste) | You have a VPS | ⭐⭐ Easy |
+| [D. Heroku](#d--heroku) | Heroku users | ⭐⭐ Easy |
 
-| Variable | Required | Description |
-|----------|:---:|-------------|
+---
+
+### A) 🌐 Railway / Render (easiest, no commands)
+
+No computer skills needed — you just click buttons on a website.
+
+**First, put this code on GitHub (one time):**
+1. Make a free account at **https://github.com**.
+2. Create a new empty repository (click **New**, give it a name, **Create**).
+3. Upload these files: on the repo page click **Add file → Upload files**, drag in
+   everything from this project, then **Commit changes**. (Or click **“Fork”** if
+   you’re viewing this project on GitHub — even easier.)
+
+**Then deploy on Railway (or Render — same idea):**
+1. Go to **https://railway.app** and sign in with GitHub.
+2. Click **New Project → Deploy from GitHub repo** and choose your repo.
+3. It sees the `Dockerfile` and starts building. Wait for it.
+4. Open the **Variables** tab and add these (from Step 1):
+
+   ```
+   API_ID = your number
+   API_HASH = your hash
+   BOT_TOKEN = your bot token
+   STORAGE_CHANNEL = -1001234567890
+   HAS_SSL = true
+   NO_PORT = true
+   PING_INTERVAL = 600
+   ```
+5. In **Settings → Networking**, click **Generate Domain**. Copy the domain it
+   gives you (looks like `something.up.railway.app`).
+6. Add one more variable:
+
+   ```
+   FQDN = something.up.railway.app
+   ```
+7. Click **Deploy / Redeploy**. Done! ✅
+
+> **Render** is identical: New → **Web Service** → pick your repo → it detects the
+> Dockerfile → add the same variables → set `FQDN` to the URL Render gives you.
+
+Now jump to [Step 3: Use the bot](#-step-3-use-your-bot).
+
+---
+
+### B) 🐳 VPS with Docker (copy‑paste)
+
+You have a VPS (Ubuntu/Debian). Log in to it (via SSH / the provider’s console),
+then copy‑paste these boxes **one at a time**, pressing **Enter** after each.
+
+**1. Install Docker** (copy the whole box):
+```bash
+curl -fsSL https://get.docker.com | sh
+```
+
+**2. Download the project and open its folder:**
+```bash
+git clone https://github.com/YOUR_USERNAME/YOUR_REPO.git pr-streams
+cd pr-streams
+```
+> Replace the link with your GitHub repo link. Don’t have it on GitHub? Upload it
+> there first (see method A), or ask however you got this project for the link.
+
+**3. Create your settings file:**
+```bash
+cp config.env.sample config.env
+nano config.env
+```
+A text editor opens. Fill in your 4 keys and your domain, like this:
+```env
+API_ID=12345678
+API_HASH=your_api_hash
+BOT_TOKEN=123456:ABC-DEF...
+STORAGE_CHANNEL=-1001234567890
+FQDN=your.domain.com
+HAS_SSL=true
+NO_PORT=true
+```
+Save and exit nano: press **Ctrl+O**, then **Enter**, then **Ctrl+X**.
+
+**4. Start the bot:**
+```bash
+docker compose up -d --build
+```
+
+**5. (See it working)**
+```bash
+docker compose logs -f
+```
+When you see `PR Streams is up!` it’s running. Press **Ctrl+C** to stop watching
+the logs (the bot keeps running).
+
+Now set up your domain + free HTTPS → see [Step 2.5](#-step-25-domain--free-https-for-vps-only).
+
+---
+
+### C) 🖥️ VPS without Docker (copy‑paste)
+
+Prefer no Docker? Copy‑paste these on your Ubuntu/Debian VPS:
+
+**1. Install the basics:**
+```bash
+sudo apt update && sudo apt install -y python3 python3-venv git nginx
+```
+
+**2. Get the project:**
+```bash
+sudo git clone https://github.com/YOUR_USERNAME/YOUR_REPO.git /opt/pr-streams
+cd /opt/pr-streams
+```
+
+**3. Install the bot’s parts:**
+```bash
+python3 -m venv venv
+./venv/bin/pip install --upgrade pip
+./venv/bin/pip install -r requirements.txt
+```
+
+**4. Create your settings:**
+```bash
+cp config.env.sample config.env
+nano config.env
+```
+Fill in your keys (same as method B), then **Ctrl+O**, **Enter**, **Ctrl+X**.
+
+**5. Make it run 24/7 and start on boot:**
+```bash
+sudo cp deploy/prstreams.service /etc/systemd/system/prstreams.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now prstreams
+```
+
+**6. Check it’s alive:**
+```bash
+journalctl -u prstreams -f
+```
+Press **Ctrl+C** to stop watching (bot keeps running).
+
+Now set up your domain + free HTTPS → see [Step 2.5](#-step-25-domain--free-https-for-vps-only).
+
+---
+
+### D) 🟪 Heroku
+
+```bash
+heroku create your-app-name
+heroku stack:set container
+heroku config:set API_ID=12345678 API_HASH=your_hash BOT_TOKEN=123456:ABC \
+  STORAGE_CHANNEL=-1001234567890 \
+  FQDN=your-app-name.herokuapp.com HAS_SSL=true NO_PORT=true PING_INTERVAL=600
+git push heroku HEAD:main
+```
+Heroku gives HTTPS automatically, so you can skip Step 2.5. Then go to
+[Step 3](#-step-3-use-your-bot).
+
+---
+
+## 🔒 Step 2.5: Domain + free HTTPS (VPS only)
+
+Do this only if you used method **B** or **C** and want a clean `https://` link
+on your own domain.
+
+**1. Point your domain at the server:** in your domain provider’s dashboard, add
+an **A record** for `your.domain.com` pointing to your VPS’s IP address. Wait a
+few minutes.
+
+**2. Set up the web address (copy‑paste):**
+```bash
+sudo cp deploy/nginx.conf /etc/nginx/sites-available/prstreams
+sudo nano /etc/nginx/sites-available/prstreams
+```
+Change every `your.domain.com` to your real domain. Save (**Ctrl+O**, **Enter**,
+**Ctrl+X**), then:
+```bash
+sudo ln -s /etc/nginx/sites-available/prstreams /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+**3. Get the free padlock (HTTPS):**
+```bash
+sudo apt install -y certbot python3-certbot-nginx
+sudo certbot --nginx -d your.domain.com
+```
+Follow the prompts (enter your email, agree). Done — your links are now
+`https://your.domain.com/...` ✅
+
+> Make sure your `config.env` has `FQDN=your.domain.com`, `HAS_SSL=true`,
+> `NO_PORT=true`, then restart:
+> - Docker: `docker compose up -d`
+> - No‑Docker: `sudo systemctl restart prstreams`
+
+---
+
+## 📲 Step 3: Use your bot
+
+1. Open your bot in Telegram and send **/start**.
+2. **Send or forward any file** to it.
+3. It replies with two buttons:
+   - **▶️ Stream / Watch** — opens the player page.
+   - **⬇️ Download** — the direct download link.
+4. On the player page you can:
+   - Watch right in the browser.
+   - If a video won’t play (some MKV/HEVC don’t play in browsers), tap
+     **Open in VLC / MX Player** — buttons appear for your device.
+   - **Copy direct link** to paste into a download manager (fastest!) or into
+     VLC on a PC (*Media → Open Network Stream*).
+   - Flip **light/dark** with the button at the top‑right.
+
+Bot commands: `/start`, `/help`, `/status` (owner only).
+
+---
+
+## ⚡ Make downloads even faster (optional)
+
+The bot is already fast, but here’s how to push it further.
+
+**Tip 1 — Use a download manager.** Because every link supports resuming and
+splitting, apps like **IDM** (Windows), **1DM/ADM** (Android), or **aria2**
+download in many pieces at once — often several times faster:
+```bash
+aria2c -x16 -s16 "PASTE_YOUR_DOWNLOAD_LINK_HERE"
+```
+
+**Tip 2 — Add extra bots (multi‑client).** This spreads downloads across several
+connections. Create more bots with @BotFather, **add each one as admin** to your
+storage channel, then add their tokens to `config.env`:
+```env
+MULTI_TOKEN1=1111:AAA...
+MULTI_TOKEN2=2222:BBB...
+MULTI_TOKEN3=3333:CCC...
+```
+Restart the bot. The logs will say `Multi-client mode active with N clients.`
+
+**Tip 3 — Use a VPS with good bandwidth.** Free website hosts (Railway/Render
+free tiers) limit speed; a VPS is faster.
+
+---
+
+## 🎞️ Big files & 4 GB support
+
+There’s **no size limit added by this bot** — it serves whatever Telegram lets it.
+Telegram’s own limits are **2 GB** per file for normal accounts and **4 GB** for
+Telegram **Premium** accounts.
+
+To serve **4 GB** files, add a Premium account’s “session” to the bot:
+```bash
+pip install pyrofork TgCrypto-pyrofork
+python generate_session.py
+```
+It asks for your API_ID/API_HASH and logs you in, then prints a long string. Put
+it in `config.env`:
+```env
+USER_SESSION1=the_long_string_it_printed
+```
+> Keep that string secret — it logs into that account. The account should be a
+> member of your storage channel.
+
+---
+
+## 🆘 Troubleshooting
+
+| Problem | Fix |
+|--------|-----|
+| Bot says it can’t save the file | Make sure the bot is an **admin** in your storage channel and the id starts with `-100`. |
+| Link shows **“invalid hash”** | Use the *full* link the bot sent — don’t cut off the `?hash=` part. |
+| Links look like `http://0.0.0.0:8080` | Set `FQDN`, `HAS_SSL`, `NO_PORT` correctly, then restart. |
+| A video won’t play in the browser | Normal for some MKV/HEVC — use the **VLC / MX Player** buttons. |
+| Downloads feel slow | Add `MULTI_TOKEN`s, use a download manager, and use a VPS (not a free tier). |
+| Video won’t skip/seek | Your web setup must pass the `Range` header — the provided `deploy/nginx.conf` already does. |
+| I changed `config.env` | Restart: `docker compose up -d` **or** `sudo systemctl restart prstreams`. |
+
+---
+
+## ⚙️ Settings reference (config.env)
+
+| Variable | Needed? | What it is |
+|----------|:---:|------------|
 | `API_ID` | ✅ | From my.telegram.org |
 | `API_HASH` | ✅ | From my.telegram.org |
 | `BOT_TOKEN` | ✅ | From @BotFather |
-| `STORAGE_CHANNEL` | ✅ | Private channel id (`-100…`) where the bot is admin |
-| `FQDN` | ✅ | Public hostname/IP the links point to (no `http://`, no trailing `/`) |
-| `HAS_SSL` | ▲ | `true` if the public URL is HTTPS (default `false`) |
-| `NO_PORT` | ▲ | `true` when a reverse proxy serves on 80/443 so links omit `:8080` |
+| `STORAGE_CHANNEL` | ✅ | Private channel id (`-100…`), bot is admin |
+| `FQDN` | ✅ | Your public address (no `http://`, no trailing `/`) |
+| `HAS_SSL` | ▲ | `true` if the link is https |
+| `NO_PORT` | ▲ | `true` when served on normal 80/443 (hides `:8080`) |
 | `BIND_ADDRESS` | | Interface to bind (default `0.0.0.0`) |
-| `PORT` | | Internal web port (default `8080`) |
-| `OWNER_ID` | | Space/comma separated owner user ids (for `/status`) |
-| `ALLOWED_USERS` | | If set, only these ids (+ owners) may create links; empty = everyone |
-| `MULTI_TOKEN1…N` | | Extra bot tokens for faster downloads (all must be channel admins) |
-| `USER_SESSION1…N` | | User session strings (Premium account ⇒ 4 GB files) |
-| `WORKERS` | | Pyrogram worker threads (default `8`) |
-| `HASH_LENGTH` | | Length of the link hash (default `6`, min `4`) |
-| `PING_INTERVAL` | | Self-ping seconds to keep sleepy PaaS awake; keep `0` on a VPS |
+| `PORT` | | Internal port (default `8080`) |
+| `OWNER_ID` | | Your Telegram user id(s), space‑separated |
+| `ALLOWED_USERS` | | If set, only these ids may make links; empty = everyone |
+| `MULTI_TOKEN1…N` | | Extra bot tokens for speed (all channel admins) |
+| `USER_SESSION1…N` | | User session strings (Premium ⇒ 4 GB files) |
+| `WORKERS` | | Worker threads (default `8`) |
+| `HASH_LENGTH` | | Link hash length (default `6`) |
+| `PING_INTERVAL` | | Self‑ping seconds to keep free hosts awake; `0` on a VPS |
 | `NAME` | | Display name (default `PR Streams`) |
 
 ---
 
-## Deploy on a VPS (recommended)
+## 🔧 How it works (for the curious)
 
-A VPS gives you the bandwidth and CPU that make downloads genuinely fast. Two
-ways — pick one.
+1. You send a file → the bot **copies** it to your private storage channel
+   (server‑side, so even 4 GB is instant — nothing is re‑uploaded).
+2. It makes a stream link and a download link with a short anti‑scrape hash.
+3. When a link is opened, the server **streams the file’s bytes straight from
+   Telegram** in 1 MiB chunks and understands HTTP `Range`, so seeking, resuming,
+   and multi‑connection download managers all work.
 
-### Option A — Docker Compose (easiest)
+**Why downloads are fast here:** a plain download normally crawls because it uses
+a single Telegram connection. PR Streams spreads requests across multiple clients
+(your extra bot tokens), reuses authorized connections, and supports `Range` so
+download managers pull many pieces in parallel. On a VPS there’s no host throttle
+in the way.
 
-```bash
-# 1. Install Docker (Debian/Ubuntu)
-curl -fsSL https://get.docker.com | sh
-
-# 2. Get the code
-git clone <your-repo-url> pr-streams && cd pr-streams
-
-# 3. Configure
-cp config.env.sample config.env
-nano config.env          # fill in the values
-
-# 4. Run
-docker compose up -d --build
-
-# Logs
-docker compose logs -f
-```
-
-To put it behind HTTPS on a domain, run the nginx step from Option B (the proxy
-config in `deploy/nginx.conf` points at `127.0.0.1:8080`, which is what compose
-exposes). Set `HAS_SSL=true` and `NO_PORT=true` in `config.env`, then
-`docker compose up -d` again.
-
-### Option B — systemd + nginx + HTTPS (no Docker)
-
-This is the classic long-running production setup.
-
-```bash
-# 1. System packages
-sudo apt update && sudo apt install -y python3 python3-venv git nginx
-
-# 2. Get the code
-sudo git clone <your-repo-url> /opt/pr-streams
-cd /opt/pr-streams
-
-# 3. Python env + deps
-python3 -m venv venv
-./venv/bin/pip install --upgrade pip
-./venv/bin/pip install -r requirements.txt
-
-# 4. Configure
-cp config.env.sample config.env
-nano config.env
-#   FQDN=your.domain.com
-#   HAS_SSL=true
-#   NO_PORT=true
-
-# 5. Install the service
-sudo cp deploy/prstreams.service /etc/systemd/system/prstreams.service
-sudo systemctl daemon-reload
-sudo systemctl enable --now prstreams
-journalctl -u prstreams -f          # watch it start
-
-# 6. nginx reverse proxy
-sudo cp deploy/nginx.conf /etc/nginx/sites-available/prstreams
-#   edit the file and replace  your.domain.com
-sudo ln -s /etc/nginx/sites-available/prstreams /etc/nginx/sites-enabled/
-sudo nginx -t && sudo systemctl reload nginx
-
-# 7. Free HTTPS certificate
-sudo apt install -y certbot python3-certbot-nginx
-sudo certbot --nginx -d your.domain.com
-```
-
-`deploy/nginx.conf` already disables proxy buffering and removes size/time limits,
-which is essential for large, fast streaming downloads. After certbot finishes,
-your links will be `https://your.domain.com/...`.
-
-To update later:
-
-```bash
-cd /opt/pr-streams && git pull
-./venv/bin/pip install -r requirements.txt
-sudo systemctl restart prstreams
-```
-
----
-
-## Deploy with Docker anywhere
-
-```bash
-docker build -t pr-streams .
-docker run -d --name pr-streams --restart unless-stopped \
-  --env-file config.env -p 8080:8080 pr-streams
-```
-
-Or point `docker-compose.yml` at any host with Docker installed.
-
----
-
-## Deploy on a PaaS
-
-These are handy for testing, but note that **free tiers throttle bandwidth**, so
-downloads will be slower than on a VPS. Set `PING_INTERVAL=600` to keep free
-dynos awake.
-
-**Koyeb / Render / Railway**
-
-1. Fork/push this repo to GitHub.
-2. Create a new **Web Service** from the repo (they auto-detect the `Dockerfile`).
-3. Add the environment variables from the [config reference](#configuration-reference).
-4. Set `FQDN` to the app's public hostname, `HAS_SSL=true`, `NO_PORT=true`.
-5. Deploy. The platform provides HTTPS automatically.
-
-**Heroku**
-
-```bash
-heroku create your-app-name
-heroku stack:set container            # uses the Dockerfile
-# set config vars (or use app.json's one-click deploy button):
-heroku config:set API_ID=... API_HASH=... BOT_TOKEN=... STORAGE_CHANNEL=... \
-  FQDN=your-app-name.herokuapp.com HAS_SSL=true NO_PORT=true PING_INTERVAL=600
-git push heroku HEAD:main
-```
-
-`app.json` is included for Heroku's one-click "Deploy" flow.
-
----
-
-## Multi-client speed & 4 GB files
-
-The single biggest speed upgrade is adding more clients so downloads spread out.
-
-**More bot tokens (recommended):**
-
-1. Create extra bots with @BotFather (as many as you like).
-2. Add **every** one of them as an **admin** to your storage channel.
-3. Put their tokens in `config.env`:
-   ```env
-   MULTI_TOKEN1=1111:AAA...
-   MULTI_TOKEN2=2222:BBB...
-   MULTI_TOKEN3=3333:CCC...
-   ```
-4. Restart. The logs will say `Multi-client mode active with N clients.`
-
-**User sessions (also enables 4 GB files):**
-
-Bot tokens can serve files up to 2 GB. To serve **4 GB** files uploaded by a
-Telegram **Premium** account, add a user session from such an account:
-
-```bash
-pip install pyrofork TgCrypto-pyrofork
-python generate_session.py          # run locally, paste in API_ID/HASH, log in
-```
-
-Put the printed string in `config.env`:
-
-```env
-USER_SESSION1=<the long string>
-```
-
-> Keep session strings secret — they grant full access to that account. The
-> account should also be a member/admin of the storage channel.
-
-There is **no artificial size cap** in PR Streams — anything Telegram lets the
-bot access can be streamed and downloaded. Telegram's own hard limit is 2 GB
-(normal) / 4 GB (Premium) per file.
-
-## Getting maximum download speed
-
-- **Use a download manager.** Because every link supports HTTP `Range`, tools
-  like **IDM**, **aria2** (`aria2c -x16 -s16 "<link>"`), **1DM/ADM** (Android)
-  download in 8–16 parallel streams — often several times faster than a browser's
-  single-stream download.
-- **Add more `MULTI_TOKEN`s** so those parallel connections land on different
-  clients.
-- **Host on a VPS with good bandwidth** (this repo's main assumption).
-- Keep the reverse proxy config from `deploy/nginx.conf` (buffering off) so bytes
-  flow straight through.
-
-## Using the bot
-
-1. Open your bot in Telegram and send `/start`.
-2. Send or forward any file.
-3. Tap **▶️ Stream / Watch** for the player page, or **⬇️ Download** for the link.
-4. On the player page:
-   - Watch in-browser (works for MP4/WebM and many MKVs).
-   - If the browser can't decode it (common for MKV/HEVC), use **Open in VLC /
-     MX Player** — buttons adapt to Android, iOS, Windows and macOS.
-   - **Copy direct link** to paste into a download manager or desktop VLC
-     (*Media → Open Network Stream*), or grab the **.m3u playlist**.
-   - Toggle **light/dark** with the button in the top-right.
-
-Bot commands: `/start`, `/help`, `/status` (owner).
-
-## Troubleshooting
-
-| Symptom | Fix |
-|---------|-----|
-| Bot replies with a storage error | Make sure the bot (and all `MULTI_TOKEN` bots) are **admins** in `STORAGE_CHANNEL`, and the id starts with `-100`. |
-| Links open but 403 *invalid hash* | The `?hash=` was altered/truncated. Use the full link the bot sent. |
-| Links point to `http://0.0.0.0:8080` | Set `FQDN`, `HAS_SSL`, `NO_PORT` correctly and restart. |
-| MKV won't play in browser | Expected for some codecs — use the VLC / MX Player buttons. |
-| Downloads still slow | Add `MULTI_TOKEN`s, use a download manager, and confirm you're on a VPS (not a throttled free tier) with the nginx buffering-off config. |
-| Video won't seek | Ensure your proxy passes the `Range` header (the provided `nginx.conf` does). |
-
-## Project layout
+## 🗂️ Project layout
 
 ```
 PRStreams/
-  __main__.py            # boot: start client pool + web server
-  vars.py                # configuration
+  __main__.py            # starts the bot + web server
+  vars.py                # reads config.env
   bot/
-    __init__.py          # StreamBot + client pool globals
+    __init__.py          # the bot + client pool
     clients.py           # start extra tokens / sessions
     plugins/             # /start, file handler, /status
   engine/
-    byte_streamer.py     # CORE fast chunked streamer (cached sessions)
-    file_properties.py   # resolve file id / name / size / hash
+    byte_streamer.py     # the fast chunked streamer
+    file_properties.py   # file name / size / hash helpers
   server/
-    stream_routes.py     # /, /watch, /dl, /m3u, /status routes + Range logic
+    stream_routes.py     # web routes + Range logic
   template/
-    watch.html           # the stream page (player + VLC/MX + theme toggle)
+    watch.html           # the player page (VLC/MX + light/dark)
     home.html
   utils/                 # helpers + HTML rendering
-deploy/                  # nginx.conf, systemd unit
+deploy/                  # nginx.conf, systemd service
 Dockerfile, docker-compose.yml, Procfile, app.json
 config.env.sample, generate_session.py
 ```
