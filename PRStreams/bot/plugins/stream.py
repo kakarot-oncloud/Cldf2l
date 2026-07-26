@@ -2,11 +2,10 @@ import asyncio
 import logging
 import urllib.parse
 
-from pyrogram import filters
+from pyrogram import Client, filters
 from pyrogram.errors import FloodWait
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
 
-from PRStreams.bot import StreamBot
 from PRStreams.engine.file_properties import get_hash, get_media_file_size, get_name
 from PRStreams.utils.human_readable import humanbytes
 from PRStreams.vars import Var
@@ -33,8 +32,8 @@ def _is_authorized(message: Message) -> bool:
     return uid in Var.ALLOWED_USERS or uid in Var.OWNER_ID
 
 
-@StreamBot.on_message(filters.private & MEDIA_FILTER, group=4)
-async def media_receive_handler(_client, message: Message):
+@Client.on_message(filters.private & MEDIA_FILTER, group=4)
+async def media_receive_handler(_client: Client, message: Message):
     if not _is_authorized(message):
         await message.reply_text(
             "🚫 You are not authorized to use this bot.", quote=True

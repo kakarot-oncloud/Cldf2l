@@ -1,10 +1,10 @@
 import time
 
-from pyrogram import filters
+from pyrogram import Client, filters
 from pyrogram.types import CallbackQuery, Message
 
 from PRStreams import StartTime, __version__
-from PRStreams.bot import StreamBot, multi_clients, work_loads
+from PRStreams.bot import multi_clients, work_loads
 from PRStreams.utils.human_readable import get_readable_time
 from PRStreams.vars import Var
 
@@ -24,21 +24,21 @@ def _status_text() -> str:
     )
 
 
-@StreamBot.on_message(filters.command(["status", "stats"]) & filters.private)
-async def status_command(_client, message: Message):
+@Client.on_message(filters.command(["status", "stats"]) & filters.private)
+async def status_command(_client: Client, message: Message):
     if Var.OWNER_ID and (not message.from_user or message.from_user.id not in Var.OWNER_ID):
         return
     await message.reply_text(_status_text(), quote=True, disable_web_page_preview=True)
 
 
-@StreamBot.on_callback_query(filters.regex("^status$"))
-async def status_callback(_client, query: CallbackQuery):
+@Client.on_callback_query(filters.regex("^status$"))
+async def status_callback(_client: Client, query: CallbackQuery):
     await query.answer()
     await query.message.reply_text(_status_text(), disable_web_page_preview=True)
 
 
-@StreamBot.on_callback_query(filters.regex("^help$"))
-async def help_callback(_client, query: CallbackQuery):
+@Client.on_callback_query(filters.regex("^help$"))
+async def help_callback(_client: Client, query: CallbackQuery):
     from PRStreams.bot.plugins.start import HELP_TEXT
 
     await query.answer()
