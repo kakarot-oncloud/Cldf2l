@@ -58,7 +58,11 @@ async def start_services():
 
 
 if __name__ == "__main__":
+    # IMPORTANT: run on the SAME event loop that StreamBot (and its dispatcher)
+    # captured at import time. Using asyncio.run() creates a *new* loop, which
+    # leaves the dispatcher's update workers on a loop that never runs -> the bot
+    # receives updates but never processes them (no reply to /start or files).
     try:
-        asyncio.run(start_services())
+        StreamBot.loop.run_until_complete(start_services())
     except KeyboardInterrupt:
         LOGGER.info("Stopped by keyboard interrupt.")
