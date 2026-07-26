@@ -1,7 +1,6 @@
-from pyrogram import filters
+from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
 
-from PRStreams.bot import StreamBot
 from PRStreams.vars import Var
 
 START_TEXT = (
@@ -40,8 +39,8 @@ def _buttons():
     )
 
 
-@StreamBot.on_message(filters.command("start") & filters.private)
-async def start_command(_client, message: Message):
+@Client.on_message(filters.command("start") & filters.private)
+async def start_command(_client: Client, message: Message):
     await message.reply_text(
         START_TEXT.format(name=Var.NAME),
         quote=True,
@@ -50,8 +49,8 @@ async def start_command(_client, message: Message):
     )
 
 
-@StreamBot.on_message(filters.command(["help", "about"]) & filters.private)
-async def help_command(_client, message: Message):
+@Client.on_message(filters.command(["help", "about"]) & filters.private)
+async def help_command(_client: Client, message: Message):
     await message.reply_text(
         HELP_TEXT.format(name=Var.NAME),
         quote=True,
