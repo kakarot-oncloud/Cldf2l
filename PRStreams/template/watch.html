@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>{{FILE_NAME}} · {{BOT_NAME}}</title>
+  <link rel="preconnect" href="https://cdn.plyr.io" />
+  <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --panel: #141414;
+      --panel-2: #1c1c1c;
+      --text: #f5f5f5;
+      --muted: #9a9a9a;
+      --border: #2a2a2a;
+      --accent: #ffffff;
+      --accent-text: #000000;
+      --shadow: 0 20px 60px rgba(0, 0, 0, .55);
+      --plyr-color-main: #ffffff;
+    }
+    html[data-theme="light"] {
+      /* Clean white / black — H&M style */
+      --bg: #ffffff;
+      --panel: #ffffff;
+      --panel-2: #f5f5f5;
+      --text: #111111;
+      --muted: #6b6b6b;
+      --border: #e3e3e3;
+      --accent: #111111;
+      --accent-text: #ffffff;
+      --shadow: 0 12px 40px rgba(0, 0, 0, .08);
+      --plyr-color-main: #111111;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      line-height: 1.5;
+      min-height: 100vh;
+      transition: background .25s ease, color .25s ease;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 22px;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: var(--bg);
+      z-index: 20;
+    }
+    .brand {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: .28em;
+      text-transform: uppercase;
+    }
+    .theme-toggle {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+      width: 42px; height: 42px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 17px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: border-color .2s ease, transform .15s ease;
+    }
+    .theme-toggle:hover { transform: scale(1.06); border-color: var(--text); }
+
+    .wrap {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 28px 20px 64px;
+    }
+
+    .player-shell {
+      background: #000;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+    }
+    html[data-theme="light"] .player-shell { background: #000; }
+    video, audio { width: 100%; display: block; }
+    audio { padding: 22px; background: var(--panel); }
+    .image-view img { width: 100%; display: block; }
+    .plyr { border-radius: 14px; }
+
+    .file-card {
+      display: flex;
+      gap: 18px;
+      align-items: center;
+      padding: 34px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+    }
+    .file-card .glyph { font-size: 46px; }
+
+    .meta {
+      margin: 26px 0 8px;
+    }
+    .meta h1 {
+      font-size: 20px;
+      font-weight: 600;
+      margin: 0 0 8px;
+      word-break: break-word;
+    }
+    .meta .sub {
+      color: var(--muted);
+      font-size: 13px;
+      letter-spacing: .04em;
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .meta .sub b { color: var(--text); font-weight: 600; }
+
+    .label {
+      font-size: 11px;
+      letter-spacing: .22em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin: 32px 0 12px;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    @media (max-width: 560px) { .actions { grid-template-columns: 1fr; } }
+
+    .btn {
+      appearance: none;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      color: var(--text);
+      padding: 15px 18px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: .02em;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: transform .12s ease, background .2s ease, border-color .2s ease;
+    }
+    .btn:hover { transform: translateY(-1px); border-color: var(--text); }
+    .btn .ico { font-size: 17px; }
+    .btn.primary {
+      background: var(--accent);
+      color: var(--accent-text);
+      border-color: var(--accent);
+    }
+    .btn.wide { grid-column: 1 / -1; }
+
+    .players {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 10px;
+    }
+
+    .note {
+      margin-top: 14px;
+      font-size: 12.5px;
+      color: var(--muted);
+    }
+    .hidden { display: none !important; }
+
+    footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: .1em;
+      padding: 28px 0;
+      text-transform: uppercase;
+    }
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 26px;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--accent);
+      color: var(--accent-text);
+      padding: 12px 20px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .25s ease, transform .25s ease;
+      z-index: 60;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body
+  data-name="{{FILE_NAME}}"
+  data-kind="{{MEDIA_KIND}}"
+  data-mime="{{MIME_TYPE}}"
+  data-stream="{{STREAM_URL}}"
+  data-download="{{DOWNLOAD_URL}}"
+  data-m3u="{{M3U_URL}}"
+>
+  <header>
+    <div class="brand">{{BOT_NAME}}</div>
+    <button class="theme-toggle" id="themeToggle" title="Toggle light / dark" aria-label="Toggle theme">🌙</button>
+  </header>
+
+  <main class="wrap">
+    <!-- VIDEO -->
+    <div class="player-shell" id="videoShell">
+      <video id="player" playsinline controls crossorigin preload="metadata">
+        <source src="{{STREAM_URL}}" type="{{MIME_TYPE}}" />
+      </video>
+    </div>
+
+    <!-- AUDIO -->
+    <div id="audioShell" class="hidden">
+      <audio id="audioPlayer" controls preload="metadata">
+        <source src="{{STREAM_URL}}" type="{{MIME_TYPE}}" />
+      </audio>
+    </div>
+
+    <!-- IMAGE -->
+    <div id="imageShell" class="image-view hidden">
+      <img src="{{STREAM_URL}}" alt="{{FILE_NAME}}" />
+    </div>
+
+    <!-- GENERIC FILE -->
+    <div id="fileShell" class="file-card hidden">
+      <div class="glyph">📄</div>
+      <div>
+        <div style="font-weight:600">This file type can't be previewed here.</div>
+        <div class="note">Use the download button or open it in an external app.</div>
+      </div>
+    </div>
+
+    <div class="meta">
+      <h1>{{FILE_NAME}}</h1>
+      <div class="sub">
+        <span>Size <b>{{FILE_SIZE}}</b></span>
+        <span>Type <b>{{MIME_TYPE}}</b></span>
+      </div>
+    </div>
+
+    <div class="actions">
+      <a class="btn primary" id="downloadBtn" href="{{DOWNLOAD_URL}}">
+        <span class="ico">⬇️</span> Download
+      </a>
+      <button class="btn" id="copyBtn"><span class="ico">🔗</span> Copy direct link</button>
+    </div>
+
+    <div id="playbackNote" class="note hidden">
+      ⚠️ Your browser can't play this format (common for MKV / HEVC). Open it in
+      one of the external players below for smooth playback.
+    </div>
+
+    <div class="label">Open in external player</div>
+    <div class="players" id="players"></div>
+    <div class="note">
+      On a computer, “Copy direct link” then paste it into VLC / MPV
+      (<em>Media → Open Network Stream</em>), or use the playlist button.
+    </div>
+  </main>
+
+  <footer>{{BOT_NAME}} · Streaming &amp; Downloads</footer>
+  <div class="toast" id="toast">Copied to clipboard</div>
+
+  <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
+  <script>
+    (function () {
+      var root = document.documentElement;
+      var body = document.body;
+      var D = body.dataset;
+
+      /* ---------- Theme ---------- */
+      var toggle = document.getElementById("themeToggle");
+      function applyTheme(t) {
+        root.setAttribute("data-theme", t);
+        toggle.textContent = t === "light" ? "☀️" : "🌙";
+      }
+      var saved = localStorage.getItem("pr-theme");
+      if (!saved) {
+        saved = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+      }
+      applyTheme(saved);
+      toggle.addEventListener("click", function () {
+        var next = root.getAttribute("data-theme") === "light" ? "dark" : "light";
+        applyTheme(next);
+        localStorage.setItem("pr-theme", next);
+      });
+
+      /* ---------- Which viewer to show ---------- */
+      var kind = (D.kind || "").toLowerCase();
+      function show(id) { document.getElementById(id).classList.remove("hidden"); }
+      function hide(id) { document.getElementById(id).classList.add("hidden"); }
+      var shells = ["videoShell", "audioShell", "imageShell", "fileShell"];
+      shells.forEach(hide);
+      if (kind === "video") show("videoShell");
+      else if (kind === "audio") show("audioShell");
+      else if (kind === "image") show("imageShell");
+      else show("fileShell");
+
+      /* ---------- Player (Plyr with graceful fallback) ---------- */
+      if (kind === "video" && window.Plyr) {
+        try {
+          new Plyr("#player", {
+            settings: ["quality", "speed", "loop"],
+            speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 2] }
+          });
+        } catch (e) { /* native controls remain */ }
+      }
+      var v = document.getElementById("player");
+      if (v) {
+        v.addEventListener("error", function () {
+          document.getElementById("playbackNote").classList.remove("hidden");
+        });
+      }
+
+      /* ---------- External players ---------- */
+      var url = D.stream;                       // http(s) direct link (inline)
+      var enc = encodeURIComponent(url);
+      var name = D.name || "video";
+      var ua = navigator.userAgent || "";
+      var isAndroid = /android/i.test(ua);
+      var isIOS = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+      var isMac = /macintosh|mac os x/i.test(ua) && !isIOS;
+      var isWin = /windows/i.test(ua);
+
+      function androidIntent(pkg) {
+        return "intent:" + url +
+          "#Intent;action=android.intent.action.VIEW;type=video/*;package=" + pkg +
+          ";S.title=" + encodeURIComponent(name) + ";end";
+      }
+
+      var players = [];
+      if (isAndroid) {
+        players.push({ label: "MX Player", icon: "🎬", href: androidIntent("com.mxtech.videoplayer.ad") });
+        players.push({ label: "MX Player Pro", icon: "🎬", href: androidIntent("com.mxtech.videoplayer.pro") });
+        players.push({ label: "VLC", icon: "🔶", href: androidIntent("org.videolan.vlc") });
+      } else if (isIOS) {
+        players.push({ label: "VLC (iOS)", icon: "🔶", href: "vlc-x-callback://x-callback-url/stream?url=" + enc });
+        players.push({ label: "Infuse", icon: "🎞️", href: "infuse://x-callback-url/play?url=" + enc });
+      } else if (isMac) {
+        players.push({ label: "IINA", icon: "🎞️", href: "iina://weblink?url=" + enc });
+        players.push({ label: "VLC playlist", icon: "🔶", href: D.m3u });
+        players.push({ label: "PotPlayer", icon: "▶️", href: "potplayer://" + url });
+      } else if (isWin) {
+        players.push({ label: "PotPlayer", icon: "▶️", href: "potplayer://" + url });
+        players.push({ label: "VLC playlist", icon: "🔶", href: D.m3u });
+        players.push({ label: "MPC-HC playlist", icon: "🎞️", href: D.m3u });
+      } else {
+        players.push({ label: "VLC playlist", icon: "🔶", href: D.m3u });
+        players.push({ label: "PotPlayer", icon: "▶️", href: "potplayer://" + url });
+      }
+      // Always available
+      players.push({ label: "Playlist (.m3u)", icon: "📃", href: D.m3u });
+
+      var container = document.getElementById("players");
+      players.forEach(function (p) {
+        var a = document.createElement("a");
+        a.className = "btn";
+        a.href = p.href;
+        a.rel = "noopener";
+        a.innerHTML = '<span class="ico">' + p.icon + '</span> ' + p.label;
+        container.appendChild(a);
+      });
+
+      /* ---------- Copy link ---------- */
+      var toast = document.getElementById("toast");
+      function flash(msg) {
+        toast.textContent = msg;
+        toast.classList.add("show");
+        setTimeout(function () { toast.classList.remove("show"); }, 1800);
+      }
+      document.getElementById("copyBtn").addEventListener("click", function () {
+        var link = D.download;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(link).then(function () { flash("Link copied"); },
+            function () { window.prompt("Copy this link:", link); });
+        } else {
+          window.prompt("Copy this link:", link);
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

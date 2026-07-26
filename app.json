@@ -1,0 +1,21 @@
+{
+  "name": "PR Streams",
+  "description": "Telegram file-to-link bot with high-speed downloads and an in-browser streaming player (VLC / MX Player support).",
+  "keywords": ["telegram", "bot", "stream", "download", "pyrogram"],
+  "env": {
+    "API_ID": { "description": "From my.telegram.org" },
+    "API_HASH": { "description": "From my.telegram.org" },
+    "BOT_TOKEN": { "description": "From @BotFather" },
+    "STORAGE_CHANNEL": { "description": "Private channel id (-100...) where the bot is admin" },
+    "FQDN": { "description": "Public hostname of the deployed app (no scheme, no trailing /)" },
+    "HAS_SSL": { "description": "true if the public URL is https", "value": "true" },
+    "NO_PORT": { "description": "true when served on default 80/443 port", "value": "true" },
+    "OWNER_ID": { "description": "Your Telegram user id (optional)", "required": false },
+    "ALLOWED_USERS": { "description": "Restrict uploads to these ids (optional)", "required": false },
+    "MULTI_TOKEN1": { "description": "Extra bot token for speed (optional)", "required": false },
+    "PING_INTERVAL": { "description": "Self-ping seconds to stay awake on free tiers", "value": "600", "required": false }
+  },
+  "formation": {
+    "web": { "quantity": 1, "size": "basic" }
+  }
+}

@@ -1,0 +1,5 @@
+pyrofork==2.3.69
+TgCrypto-pyrofork==1.2.8
+aiohttp==3.10.11
+aiofiles==24.1.0
+python-dotenv==1.0.1

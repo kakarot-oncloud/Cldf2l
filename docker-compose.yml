@@ -1,0 +1,14 @@
+services:
+  prstreams:
+    build: .
+    container_name: prstreams
+    restart: unless-stopped
+    # Reads every variable from config.env (copy config.env.sample first).
+    env_file:
+      - config.env
+    ports:
+      - "8080:8080"
+    # Keep the in-memory pyrogram sessions across restarts is not required,
+    # but persisting logs can be handy:
+    # volumes:
+    #   - ./logs:/app/logs

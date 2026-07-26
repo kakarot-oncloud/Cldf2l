@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{BOT_NAME}}</title>
+  <style>
+    :root { --bg:#0a0a0a; --text:#f5f5f5; --muted:#9a9a9a; --border:#2a2a2a; --accent:#fff; --accent-text:#000; }
+    html[data-theme="light"] { --bg:#fff; --text:#111; --muted:#6b6b6b; --border:#e3e3e3; --accent:#111; --accent-text:#fff; }
+    * { box-sizing: border-box; }
+    body {
+      margin:0; min-height:100vh; background:var(--bg); color:var(--text);
+      font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      text-align:center; padding:24px;
+    }
+    .brand { font-size:14px; letter-spacing:.3em; text-transform:uppercase; color:var(--muted); }
+    h1 { font-size:clamp(30px,7vw,58px); font-weight:700; letter-spacing:-.02em; margin:14px 0 18px; }
+    p { max-width:560px; color:var(--muted); font-size:16px; line-height:1.6; }
+    .tag { display:flex; gap:22px; flex-wrap:wrap; justify-content:center; margin-top:26px; color:var(--muted); font-size:13px; letter-spacing:.08em; text-transform:uppercase; }
+    .tag b { color:var(--text); }
+    .toggle { position:fixed; top:20px; right:20px; width:42px; height:42px; border-radius:999px; border:1px solid var(--border); background:transparent; color:var(--text); cursor:pointer; font-size:17px; }
+  </style>
+</head>
+<body>
+  <button class="toggle" id="t">🌙</button>
+  <div class="brand">{{BOT_NAME}}</div>
+  <h1>Stream &amp; download,<br />the fast way.</h1>
+  <p>Send a file to the bot on Telegram and get an instant streaming page plus a
+     high-speed direct download link. MKV, MP4 and every popular format — playable
+     in-browser or in VLC / MX Player.</p>
+  <div class="tag">
+    <span><b>⚡</b> High speed</span>
+    <span><b>▶️</b> In-browser player</span>
+    <span><b>📲</b> VLC / MX Player</span>
+    <span><b>∞</b> Any size</span>
+  </div>
+  <script>
+    var r = document.documentElement, t = document.getElementById("t");
+    function ap(x){ r.setAttribute("data-theme",x); t.textContent = x==="light"?"☀️":"🌙"; }
+    var s = localStorage.getItem("pr-theme") || (window.matchMedia && matchMedia("(prefers-color-scheme: light)").matches ? "light":"dark");
+    ap(s);
+    t.onclick = function(){ var n = r.getAttribute("data-theme")==="light"?"dark":"light"; ap(n); localStorage.setItem("pr-theme",n); };
+  </script>
+</body>
+</html>

@@ -1,0 +1,30 @@
+# PR Streams — systemd unit for running directly on a VPS (no Docker).
+#
+#   1. Clone the repo to /opt/pr-streams and create the venv:
+#        cd /opt/pr-streams
+#        python3 -m venv venv
+#        ./venv/bin/pip install -r requirements.txt
+#        cp config.env.sample config.env   # then edit it
+#   2. Copy this file to /etc/systemd/system/prstreams.service
+#      (adjust User and paths if different).
+#   3. sudo systemctl daemon-reload
+#      sudo systemctl enable --now prstreams
+#   4. Logs:  journalctl -u prstreams -f
+
+[Unit]
+Description=PR Streams - Telegram file to link bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/pr-streams
+ExecStart=/opt/pr-streams/venv/bin/python -m PRStreams
+Restart=always
+RestartSec=5
+# config.env is loaded by the app itself, but exposing it here too is harmless:
+EnvironmentFile=-/opt/pr-streams/config.env
+
+[Install]
+WantedBy=multi-user.target
