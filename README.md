@@ -1,15 +1,31 @@
-# PR Streams — Telegram File → Link Bot (Streaming + Fast Downloads)
+<div align="center">
 
-Send **any file** to your bot on Telegram and get back:
+# 🎬 PR Streams
 
-- ⬇️ a **fast direct download** link
-- ▶️ a **nice video player page** (with a light/dark switch)
-- 📲 **“Open in VLC / MX Player”** buttons for phone and computer
-- ∞ **any size** file (up to Telegram’s own limit — 2 GB, or **4 GB** with Premium)
+### Telegram File → Link Bot · Streaming + High-Speed Downloads
+
+Turn **any file** you send on Telegram into an instant **streaming page** and a
+**fast direct download** link.
+
+![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![Pyrofork](https://img.shields.io/badge/Pyrofork-MTProto-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white)
+![aiohttp](https://img.shields.io/badge/aiohttp-async-2C5BB4?style=for-the-badge)
+![Docker](https://img.shields.io/badge/Docker-ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+
+</div>
+
+---
+
+**What you get:**
+
+- ⬇️ a **fast direct download** link (works great with download managers)
+- ▶️ a **nice video player page** with a **light / dark** switch
+- 📲 one-tap **“Open in VLC / MX Player”** for phone and computer
+- ∞ **any size** file — up to Telegram’s own limit (2 GB, or **4 GB** with Premium)
 - 🎞️ plays **MKV, MP4, MOV, AVI, WEBM** and all popular formats
 
-> This guide is written so that **anyone** can set it up — even if you’ve never
-> written code. Just follow the steps and **copy‑paste** the boxes. 🙂
+> 💡 This guide is written so **anyone** can set it up — even if you’ve never
+> written a line of code. Just follow the steps and **copy-paste** the boxes. 🙂
 
 ---
 
@@ -158,6 +174,22 @@ docker compose logs -f
 ```
 When you see `PR Streams is up!` it’s running. Press **Ctrl+C** to stop watching
 the logs (the bot keeps running).
+
+> **🎛️ Want a different port?** By default the bot uses **8080**. To use another
+> port (for example `3359`), do these two things **before** step 4:
+> 1. In `config.env`, set `PORT=3359`.
+> 2. Run this one line so Docker uses the same port:
+>    ```bash
+>    sed -i 's/8080/3359/g' docker-compose.yml
+>    ```
+> Then continue with step 4. Your links will use that port
+> (`http://your-address:3359/...`). If you use a firewall, open that port too.
+
+> **🔄 Updating later (get new fixes):** from inside the `pr-streams` folder run:
+> ```bash
+> git pull && docker compose up -d --build
+> ```
+> If you only edited `config.env`, use `docker compose up -d --force-recreate`.
 
 Now set up your domain + free HTTPS → see [Step 2.5](#-step-25-domain--free-https-for-vps-only).
 
